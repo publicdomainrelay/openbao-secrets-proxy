@@ -274,4 +274,3 @@ func (p *oauthProvider) authorize(t *testing.T, authURL string) (code, state str
 	}
 	return parsed.Query().Get("code"), parsed.Query().Get("state")
 }
-

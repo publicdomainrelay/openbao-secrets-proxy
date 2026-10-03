@@ -21,23 +21,23 @@ const (
 )
 
 type oauthProvider struct {
-	Name              string            `json:"name"`
-	AuthorizeURL      string            `json:"authorize_url"`
-	TokenURL          string            `json:"token_url"`
-	ClientID          string            `json:"client_id"`
-	ClientSecret      string            `json:"client_secret"`
-	Scopes            []string          `json:"scopes"`
-	RedirectURL       string            `json:"redirect_url"`
-	Audience          string            `json:"audience"`
-	ExtraAuthParams   map[string]string `json:"extra_auth_params"`
-	ExtraTokenParams  map[string]string `json:"extra_token_params"`
-	AuthStyle         string            `json:"auth_style"`
-	PKCE              bool              `json:"pkce"`
-	StoreMode         string            `json:"store_mode"`
-	RefreshWindow     time.Duration     `json:"refresh_window"`
-	UseRefreshToken   bool              `json:"use_refresh_token"`
-	SuccessRedirect   string            `json:"success_redirect"`
-	DisableRefreshSave bool             `json:"disable_refresh_save"`
+	Name               string            `json:"name"`
+	AuthorizeURL       string            `json:"authorize_url"`
+	TokenURL           string            `json:"token_url"`
+	ClientID           string            `json:"client_id"`
+	ClientSecret       string            `json:"client_secret"`
+	Scopes             []string          `json:"scopes"`
+	RedirectURL        string            `json:"redirect_url"`
+	Audience           string            `json:"audience"`
+	ExtraAuthParams    map[string]string `json:"extra_auth_params"`
+	ExtraTokenParams   map[string]string `json:"extra_token_params"`
+	AuthStyle          string            `json:"auth_style"`
+	PKCE               bool              `json:"pkce"`
+	StoreMode          string            `json:"store_mode"`
+	RefreshWindow      time.Duration     `json:"refresh_window"`
+	UseRefreshToken    bool              `json:"use_refresh_token"`
+	SuccessRedirect    string            `json:"success_redirect"`
+	DisableRefreshSave bool              `json:"disable_refresh_save"`
 }
 
 type oauthState struct {
@@ -223,11 +223,11 @@ func (b *Backend) pathsOAuth() []*framework.Path {
 					Description:   "How client credentials are sent to the token endpoint.",
 					AllowedValues: []any{oauthclient.AuthStyleBasic, oauthclient.AuthStyleBody},
 				},
-				"pkce":                {Type: framework.TypeBool, Description: "Use PKCE (S256)."},
-				"store_mode":          {Type: framework.TypeString, Description: "entity stores a token per identity entity; shared stores one token.", AllowedValues: []any{storeModeEntity, storeModeShared}},
-				"refresh_window":      {Type: framework.TypeDurationSecond, Description: "Refresh the token this many seconds before expiry."},
-				"use_refresh_token":   {Type: framework.TypeBool, Description: "Refresh expired tokens with the refresh token."},
-				"success_redirect":    {Type: framework.TypeString, Description: "Default browser redirect after a successful callback."},
+				"pkce":                 {Type: framework.TypeBool, Description: "Use PKCE (S256)."},
+				"store_mode":           {Type: framework.TypeString, Description: "entity stores a token per identity entity; shared stores one token.", AllowedValues: []any{storeModeEntity, storeModeShared}},
+				"refresh_window":       {Type: framework.TypeDurationSecond, Description: "Refresh the token this many seconds before expiry."},
+				"use_refresh_token":    {Type: framework.TypeBool, Description: "Refresh expired tokens with the refresh token."},
+				"success_redirect":     {Type: framework.TypeString, Description: "Default browser redirect after a successful callback."},
 				"disable_refresh_save": {Type: framework.TypeBool, Description: "Do not persist refreshed tokens."},
 			},
 			ExistenceCheck: b.pathOAuthExistenceCheck,
@@ -551,12 +551,12 @@ func (b *Backend) pathOAuthTokenRead(ctx context.Context, req *logical.Request, 
 		return nil, nil
 	}
 	data := map[string]any{
-		"provider":    name,
-		"entity_id":   entityID,
-		"token_type":  rec.TokenType,
-		"scopes":      rec.Scopes,
-		"expires_at":  formatTime(rec.Expiry),
-		"obtained_at": formatTime(rec.ObtainedAt),
+		"provider":          name,
+		"entity_id":         entityID,
+		"token_type":        rec.TokenType,
+		"scopes":            rec.Scopes,
+		"expires_at":        formatTime(rec.Expiry),
+		"obtained_at":       formatTime(rec.ObtainedAt),
 		"has_refresh_token": rec.RefreshToken != "",
 	}
 	if d.Get("reveal").(bool) {

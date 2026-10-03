@@ -28,13 +28,13 @@ func (b *Backend) pathsProxy() []*framework.Path {
 		},
 	}
 	ops := map[logical.Operation]framework.OperationHandler{
-		logical.ReadOperation:    &framework.PathOperation{Callback: b.pathProxy},
-		logical.HeaderOperation:  &framework.PathOperation{Callback: b.pathProxy},
-		logical.CreateOperation:  &framework.PathOperation{Callback: b.pathProxy},
-		logical.UpdateOperation:  &framework.PathOperation{Callback: b.pathProxy},
-		logical.PatchOperation:   &framework.PathOperation{Callback: b.pathProxy},
-		logical.DeleteOperation:  &framework.PathOperation{Callback: b.pathProxy},
-		logical.ListOperation:    &framework.PathOperation{Callback: b.pathProxy},
+		logical.ReadOperation:   &framework.PathOperation{Callback: b.pathProxy},
+		logical.HeaderOperation: &framework.PathOperation{Callback: b.pathProxy},
+		logical.CreateOperation: &framework.PathOperation{Callback: b.pathProxy},
+		logical.UpdateOperation: &framework.PathOperation{Callback: b.pathProxy},
+		logical.PatchOperation:  &framework.PathOperation{Callback: b.pathProxy},
+		logical.DeleteOperation: &framework.PathOperation{Callback: b.pathProxy},
+		logical.ListOperation:   &framework.PathOperation{Callback: b.pathProxy},
 	}
 	return []*framework.Path{
 		{

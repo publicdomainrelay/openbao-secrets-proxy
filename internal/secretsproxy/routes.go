@@ -14,8 +14,8 @@ const (
 	modeRaw      = "raw"
 	modeEnvelope = "envelope"
 
-	updateMethodPost = "POST"
-	updateMethodPut  = "PUT"
+	updateMethodPost  = "POST"
+	updateMethodPut   = "PUT"
 	updateMethodPatch = "PATCH"
 )
 
