@@ -419,6 +419,8 @@ func (b *Backend) pathOAuthLogin(ctx context.Context, req *logical.Request, d *f
 		return logical.ErrorResponse(err.Error()), nil
 	}
 
+	purgeExpiredStates(ctx, req.Storage, cfg.OAuthStateTTL)
+
 	record := &oauthState{
 		State:           state,
 		Provider:        name,
@@ -584,6 +586,34 @@ func (b *Backend) pathOAuthTokenDelete(ctx context.Context, req *logical.Request
 		return nil, err
 	}
 	return nil, nil
+}
+
+// Abandoned OAuth states (the browser never came back) would otherwise live
+// forever, because storage has no TTL. Sweep them opportunistically when a new
+// login arrives, with bounded work per call.
+const (
+	stateSweepThreshold = 16
+	stateSweepLimit     = 64
+)
+
+func purgeExpiredStates(ctx context.Context, s logical.Storage, ttl time.Duration) {
+	keys, err := s.List(ctx, oauthStatePrefix)
+	if err != nil || len(keys) <= stateSweepThreshold {
+		return
+	}
+	cutoff := time.Now().Add(-ttl)
+	for i, key := range keys {
+		if i >= stateSweepLimit {
+			return
+		}
+		record, err := readJSON[oauthState](ctx, s, oauthStatePrefix+key)
+		if err != nil || record == nil {
+			continue
+		}
+		if record.CreatedAt.Before(cutoff) {
+			_ = s.Delete(ctx, oauthStatePrefix+key)
+		}
+	}
 }
 
 func defaultCallbackURL(cfg *backendConfig, req *logical.Request, name string) string {

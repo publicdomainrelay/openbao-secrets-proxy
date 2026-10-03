@@ -123,7 +123,7 @@ func (b *Backend) pathProxy(ctx context.Context, req *logical.Request, d *framew
 	}
 	upstream.RawQuery = query.Encode()
 
-	upstream.Path = joinPath(upstream.Path, strings.TrimPrefix(rest, route.StripPrefix))
+	upstream.Path = joinPath(upstream.Path, stripRoutePrefix(rest, route.StripPrefix))
 
 	method, err := b.upstreamMethod(req, route)
 	if err != nil {

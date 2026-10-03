@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -60,6 +61,30 @@ func (r *upstreamRequest) validate() error {
 	return nil
 }
 
+// transports are shared so upstream connections are pooled per TLS policy.
+var transports sync.Map
+
+func transportFor(insecureSkipVerify bool) *http.Transport {
+	if cached, ok := transports.Load(insecureSkipVerify); ok {
+		return cached.(*http.Transport)
+	}
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: insecureSkipVerify}, //nolint:gosec
+		TLSHandshakeTimeout: 10 * time.Second,
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 8,
+		IdleConnTimeout:     90 * time.Second,
+		ForceAttemptHTTP2:   true,
+	}
+	actual, _ := transports.LoadOrStore(insecureSkipVerify, transport)
+	return actual.(*http.Transport)
+}
+
 func (r *upstreamRequest) do(ctx context.Context) (*upstreamResponse, error) {
 	if err := r.validate(); err != nil {
 		return nil, err
@@ -89,17 +114,7 @@ func (r *upstreamRequest) do(ctx context.Context) (*upstreamResponse, error) {
 	}
 
 	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   10 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			TLSClientConfig:       &tls.Config{InsecureSkipVerify: r.InsecureSkipVerify}, //nolint:gosec
-			TLSHandshakeTimeout:   10 * time.Second,
-			ResponseHeaderTimeout: timeout,
-			ForceAttemptHTTP2:     true,
-		},
+		Transport: transportFor(r.InsecureSkipVerify),
 		CheckRedirect: func(*http.Request, []*http.Request) error {
 			return http.ErrUseLastResponse
 		},

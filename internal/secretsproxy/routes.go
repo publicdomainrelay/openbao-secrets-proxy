@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/openbao/openbao/sdk/v2/framework"
@@ -64,17 +65,40 @@ func (r *routeConfig) upstreamURL() (*url.URL, error) {
 	return u, nil
 }
 
+// hasScheme reports whether raw starts with a URL scheme, i.e. matches
+// "^[a-zA-Z][a-zA-Z0-9+.-]*://". A bare "host:port/path" is not a scheme.
 func hasScheme(raw string) bool {
-	for i := 0; i < len(raw); i++ {
+	i := 0
+	for i < len(raw) {
 		c := raw[i]
-		if c == ':' {
-			return i > 0
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z':
+		case (c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.':
+			if i == 0 {
+				return false
+			}
+		default:
+			return strings.HasPrefix(raw[i:], "://") && i > 0
 		}
-		if c == '/' || c == '?' || c == '#' {
-			return false
-		}
+		i++
 	}
 	return false
+}
+
+// stripRoutePrefix removes prefix from rest only at a path segment boundary.
+func stripRoutePrefix(rest, prefix string) string {
+	if prefix == "" {
+		return rest
+	}
+	prefix = strings.Trim(prefix, "/")
+	trimmed := strings.TrimPrefix(rest, "/")
+	switch {
+	case trimmed == prefix:
+		return ""
+	case strings.HasPrefix(trimmed, prefix+"/"):
+		return "/" + trimmed[len(prefix)+1:]
+	}
+	return rest
 }
 
 func (b *Backend) loadRoute(ctx context.Context, s logical.Storage, name string) (*routeConfig, error) {

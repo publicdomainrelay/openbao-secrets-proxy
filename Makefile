@@ -5,8 +5,10 @@ GO ?= go
 build:
 	./scripts/build.sh
 
+# -count=1 because the integration suite builds the plugin from source, which
+# the go test cache does not track.
 test:
-	$(GO) test ./...
+	$(GO) test ./... -count=1
 
 unit:
 	$(GO) test ./internal/...
