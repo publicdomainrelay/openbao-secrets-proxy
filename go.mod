@@ -3,6 +3,7 @@ module github.com/publicdomainrelay/openbao-secrets-proxy
 go 1.27.0
 
 require (
+	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/openbao/openbao/sdk/v2 v2.7.1
 	golang.org/x/oauth2 v0.36.0
 )
@@ -13,7 +14,6 @@ require (
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fatih/color v1.19.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/golang/snappy v0.0.4 // indirect

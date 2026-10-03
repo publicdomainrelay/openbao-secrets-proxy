@@ -15,7 +15,7 @@ const (
 	refEntity     = "entity"
 )
 
-func isTokenChar(c byte) bool {
+func isIdentChar(c byte) bool {
 	switch {
 	case c >= 'a' && c <= 'z':
 		return true
@@ -25,10 +25,42 @@ func isTokenChar(c byte) bool {
 		return true
 	}
 	switch c {
-	case '_', '-', '.', ':', '@', '/':
+	case '_', '-', '.', '@', '/':
 		return true
 	}
 	return false
+}
+
+// refLen reports the length of the reference beginning at s[start], which must
+// be '$'. References are kind, then ':', then name, then an optional ':' and
+// field. ':' separates parts, so it never appears inside one.
+func refLen(s string, start int) (int, bool) {
+	i := start + 1
+	j := i
+	for j < len(s) && isIdentChar(s[j]) {
+		j++
+	}
+	if j == i || j >= len(s) || s[j] != ':' {
+		return 0, false
+	}
+	j++
+	k := j
+	for k < len(s) && isIdentChar(s[k]) {
+		k++
+	}
+	if k == j {
+		return 0, false
+	}
+	if k < len(s) && s[k] == ':' {
+		m := k + 1
+		for m < len(s) && isIdentChar(s[m]) {
+			m++
+		}
+		if m > k+1 {
+			k = m
+		}
+	}
+	return k - start, true
 }
 
 // render expands $cred:, $oauth: and $entity: references in tpl. Unknown
@@ -47,11 +79,13 @@ func render(tpl string, r *resolver) (string, error) {
 			i += 2
 			continue
 		}
-		j := i + 1
-		for j < len(tpl) && isTokenChar(tpl[j]) {
-			j++
+		n, ok := refLen(tpl, i)
+		if !ok {
+			sb.WriteByte('$')
+			i++
+			continue
 		}
-		token := tpl[i+1 : j]
+		token := tpl[i+1 : i+n]
 		value, handled, err := r.resolve(token)
 		if err != nil {
 			return "", err
@@ -62,7 +96,7 @@ func render(tpl string, r *resolver) (string, error) {
 		} else {
 			sb.WriteString(value)
 		}
-		i = j
+		i += n
 	}
 	return sb.String(), nil
 }
