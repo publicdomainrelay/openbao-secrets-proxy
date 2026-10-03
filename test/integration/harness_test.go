@@ -270,6 +270,14 @@ func (c *cluster) Stop() {
 	}
 }
 
+// apiClient never follows redirects: proxied responses and OAuth callbacks can
+// legitimately be redirects that the test needs to inspect.
+var apiClient = &http.Client{
+	CheckRedirect: func(*http.Request, []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
+}
+
 // APIRequest performs a raw HTTP request against the OpenBao API.
 func (c *cluster) APIRequest(method, path string, body any, token string) (*http.Response, []byte, error) {
 	var reader io.Reader
@@ -290,7 +298,7 @@ func (c *cluster) APIRequest(method, path string, body any, token string) (*http
 	if token != "" {
 		req.Header.Set("X-Vault-Token", token)
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := apiClient.Do(req)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -315,6 +323,55 @@ func (c *cluster) MustProxy(t *testing.T, method, path string, body any, token s
 		t.Fatalf("proxy %s %s: %v", method, path, err)
 	}
 	return resp, raw
+}
+
+// CallerPolicy grants a non-root token access to the engine's caller-facing
+// paths. Root tokens bypass ACLs, so any test that uses an identity-backed
+// token needs this.
+const CallerPolicy = `
+path "` + mountPath + `/proxy/*" {
+  capabilities = ["read", "create", "update", "delete", "list"]
+}
+path "` + mountPath + `/oauth/*" {
+  capabilities = ["read", "create", "update", "delete", "list"]
+}
+path "` + mountPath + `/credentials/*" {
+  capabilities = ["read", "list"]
+}
+path "` + mountPath + `/routes/*" {
+  capabilities = ["read", "list"]
+}
+`
+
+// EntityToken creates a userpass user and returns a login token that carries an
+// identity entity.
+func EntityToken(t *testing.T, c *cluster, username string) string {
+	t.Helper()
+	c.Run("auth", "enable", "-path=userpass-it", "userpass")
+	c.MustPolicy(t, "secrets-proxy-caller", CallerPolicy)
+	c.MustRun(t, "write", "auth/userpass-it/users/"+username,
+		"password=hunter2", "policies=default,secrets-proxy-caller")
+	login := c.MustJSON(t, "write", "auth/userpass-it/login/"+username, "password=hunter2")
+	auth, ok := login["auth"].(map[string]any)
+	if !ok {
+		t.Fatalf("login response = %v", login)
+	}
+	token, ok := auth["client_token"].(string)
+	if !ok || token == "" {
+		t.Fatalf("login response has no client token: %v", login)
+	}
+	return token
+}
+
+// Data returns the data object of an OpenBao response.
+func Data(t *testing.T, raw []byte) map[string]any {
+	t.Helper()
+	decoded := DecodeJSON(t, raw)
+	data, ok := decoded["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("response has no data object: %s", raw)
+	}
+	return data
 }
 
 // MustPolicy writes an HCL policy.
@@ -367,5 +424,8 @@ func DecodeJSON(t *testing.T, raw []byte) map[string]any {
 // Configure applies engine configuration used by every test.
 func Configure(t *testing.T, c *cluster) {
 	t.Helper()
-	c.MustRun(t, "write", mountPath+"/config", "allow_insecure_upstreams=true")
+	c.MustRun(t, "write", mountPath+"/config",
+		"allow_insecure_upstreams=true",
+		"public_url="+c.addr,
+	)
 }

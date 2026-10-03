@@ -310,14 +310,7 @@ func TestEntityTemplatesResolveForUserpassToken(t *testing.T) {
 	Configure(t, c)
 	upstream := newEchoServer(t)
 
-	c.MustRun(t, "auth", "enable", "-path=userpass-it", "userpass")
-	c.MustPolicy(t, "secrets-proxy-caller",
-		"path \""+mountPath+"/proxy/*\" {\n  capabilities = [\"read\", \"create\", \"update\", \"delete\", \"list\"]\n}\n")
-	c.MustRun(t, "write", "auth/userpass-it/users/alice",
-		"password=hunter2", "policies=default,secrets-proxy-caller")
-
-	login := c.MustJSON(t, "write", "auth/userpass-it/login/alice", "password=hunter2")
-	clientToken := login["auth"].(map[string]any)["client_token"].(string)
+	clientToken := EntityToken(t, c, "alice")
 
 	c.MustWrite(t, mountPath+"/routes/entity", map[string]any{
 		"upstream":       upstream.URL,

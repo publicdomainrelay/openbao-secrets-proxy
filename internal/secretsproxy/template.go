@@ -134,9 +134,6 @@ func (r *resolver) entityField(field string) (string, bool, error) {
 }
 
 func (r *resolver) oauthField(name, field string) (string, error) {
-	if r.entityID == "" {
-		return "", fmt.Errorf("oauth provider %q needs an identity entity; this token has none", name)
-	}
 	if r.provider == nil {
 		return "", fmt.Errorf("oauth provider %q is unavailable in this context", name)
 	}
@@ -146,6 +143,9 @@ func (r *resolver) oauthField(name, field string) (string, error) {
 	}
 	if provider == nil {
 		return "", fmt.Errorf("oauth provider %q not found", name)
+	}
+	if provider.StoreMode != storeModeShared && r.entityID == "" {
+		return "", fmt.Errorf("oauth provider %q needs an identity entity; this token has none", name)
 	}
 	record, err := loadToken(r.ctx, r.storage, provider, name, r.entityID)
 	if err != nil {
